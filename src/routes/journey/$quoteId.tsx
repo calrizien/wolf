@@ -3,10 +3,12 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '../../../convex/_generated/api'
 import { useMutation, useAction } from 'convex/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
+import { LoadingSpinner, LoadingJourneyPage } from '../../components/LoadingSpinner'
 
 export const Route = createFileRoute('/journey/$quoteId')({
   component: JourneyPage,
+  pendingComponent: LoadingJourneyPage,
 })
 
 function JourneyPage() {
@@ -67,14 +69,15 @@ function JourneyPage() {
 
   if (!currentQuote) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
+        <div className="text-center animate-fade-in-scale">
+          <div className="text-6xl mb-4">🔍</div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Quote not found
           </h2>
           <Link
             to="/"
-            className="text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="inline-block px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:scale-105 transition-transform"
           >
             Return home
           </Link>
@@ -86,12 +89,13 @@ function JourneyPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
       {/* Navigation */}
-      <nav className="container mx-auto px-4 py-6">
+      <nav className="container mx-auto px-4 py-6 animate-fade-in">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-smooth group"
         >
-          <span>←</span> Back to all quotes
+          <span className="transform group-hover:-translate-x-1 transition-transform">←</span>
+          <span>Back to all quotes</span>
         </Link>
       </nav>
 
@@ -99,7 +103,7 @@ function JourneyPage() {
       <section className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* Current Quote Card */}
-          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-2xl p-12 shadow-2xl mb-16 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-2xl p-12 shadow-2xl mb-16 border border-gray-200 dark:border-gray-700 animate-fade-in-scale">
             {/* Category Badge */}
             <div className="mb-6">
               <span className="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
@@ -169,18 +173,25 @@ function JourneyPage() {
           </div>
 
           {/* Journey Continues - Next Options */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 animate-fade-in-up">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Continue Your Journey
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
               Choose a quote that resonates with you
             </p>
-            {currentQuote?.embedding && !isLoadingAI && (
-              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-full text-xs text-indigo-700 dark:text-indigo-300">
+            {isLoadingAI ? (
+              <div className="mt-4">
+                <LoadingSpinner size="sm" />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Finding related quotes...
+                </p>
+              </div>
+            ) : currentQuote?.embedding ? (
+              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-full text-xs text-indigo-700 dark:text-indigo-300 animate-fade-in">
                 <span>🤖</span> AI-powered recommendations
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Related Quotes Grid */}
@@ -196,9 +207,9 @@ function JourneyPage() {
                   className="group"
                 >
                   <article
-                    className="h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 border border-gray-100 dark:border-gray-700 flex flex-col"
+                    className="h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-2xl transition-smooth hover:scale-105 hover:-translate-y-1 border border-gray-100 dark:border-gray-700 flex flex-col animate-card-entrance"
                     style={{
-                      animationDelay: `${index * 0.1}s`,
+                      animationDelay: `${index * 0.15}s`,
                     }}
                   >
                     {/* Category Badge */}
@@ -223,9 +234,10 @@ function JourneyPage() {
                     </footer>
 
                     {/* Hover Indicator */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                        Choose this path →
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                      <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium inline-flex items-center gap-1">
+                        <span>Choose this path</span>
+                        <span className="transform group-hover:translate-x-1 transition-transform">→</span>
                       </p>
                     </div>
                   </article>

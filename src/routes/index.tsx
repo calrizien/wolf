@@ -2,6 +2,8 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '../../convex/_generated/api'
+import { Suspense } from 'react'
+import { LoadingQuoteCard } from '../components/LoadingSpinner'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -16,12 +18,12 @@ function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
       {/* Header */}
-      <header className="container mx-auto px-4 py-8">
+      <header className="container mx-auto px-4 py-8 animate-fade-in-up">
         <div className="text-center space-y-4">
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-fade-in">
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             QuoteJourney
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto animate-fade-in">
             Embark on an infinite journey through wisdom, one quote at a time
           </p>
         </div>
@@ -29,50 +31,66 @@ function Home() {
 
       {/* Quote Grid */}
       <section className="container mx-auto px-4 py-12">
-        {quotes.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="space-y-6">
-              <div className="text-6xl">📚</div>
-              <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300">
-                No quotes yet
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                Run the setup script to seed the database with inspiring quotes.
-              </p>
-              <div className="bg-gray-800 dark:bg-gray-900 text-green-400 p-4 rounded-lg max-w-lg mx-auto font-mono text-sm text-left">
-                <p className="mb-2"># In Convex dashboard, run:</p>
-                <p className="text-white">scraping.seedDatabase()</p>
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <LoadingQuoteCard key={i} />
+              ))}
+            </div>
+          }
+        >
+          {quotes.length === 0 ? (
+            <div className="text-center py-20 animate-fade-in-up">
+              <div className="space-y-6">
+                <div className="text-6xl animate-bounce">📚</div>
+                <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300">
+                  No quotes yet
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                  Run the setup script to seed the database with inspiring quotes.
+                </p>
+                <div className="bg-gray-800 dark:bg-gray-900 text-green-400 p-4 rounded-lg max-w-lg mx-auto font-mono text-sm text-left transition-smooth hover:scale-105">
+                  <p className="mb-2"># In Convex dashboard, run:</p>
+                  <p className="text-white">scraping.seedDatabase()</p>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {quotes.map((quote, index) => (
-              <QuoteCard
-                key={quote._id}
-                quote={quote}
-                index={index}
-              />
-            ))}
-          </div>
-        )}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {quotes.map((quote, index) => (
+                <QuoteCard
+                  key={quote._id}
+                  quote={quote}
+                  index={index}
+                />
+              ))}
+            </div>
+          )}
+        </Suspense>
       </section>
 
       {/* CTA Section */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 max-w-2xl mx-auto shadow-xl">
+      <section className="container mx-auto px-4 py-16 text-center animate-fade-in-up">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 max-w-2xl mx-auto shadow-xl transition-smooth hover:shadow-2xl">
           <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
             Start Your Journey
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
             Click any quote above to begin your personalized exploration through wisdom
           </p>
-          <div className="flex gap-4 justify-center">
-            <button className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:scale-105 transition-transform">
-              Random Quote
+          <div className="flex gap-4 justify-center flex-wrap">
+            <button className="group px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold transition-all hover:scale-105 hover:shadow-lg active:scale-95">
+              <span className="inline-flex items-center gap-2">
+                <span>🎲</span>
+                Random Quote
+              </span>
             </button>
-            <button className="px-6 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold border-2 border-gray-200 dark:border-gray-600 hover:scale-105 transition-transform">
-              Browse Categories
+            <button className="group px-6 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold border-2 border-gray-200 dark:border-gray-600 transition-all hover:scale-105 hover:border-indigo-400 dark:hover:border-indigo-500 active:scale-95">
+              <span className="inline-flex items-center gap-2">
+                <span>📁</span>
+                Browse Categories
+              </span>
             </button>
           </div>
         </div>
@@ -95,9 +113,9 @@ function QuoteCard({
       className="group"
     >
       <article
-        className="h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 border border-gray-100 dark:border-gray-700 flex flex-col"
+        className="h-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-2xl transition-smooth hover:scale-105 hover:-translate-y-1 border border-gray-100 dark:border-gray-700 flex flex-col animate-card-entrance"
         style={{
-          animationDelay: `${index * 0.1}s`,
+          animationDelay: `${index * 0.05}s`,
         }}
       >
         {/* Category Badge */}
@@ -130,9 +148,10 @@ function QuoteCard({
         </footer>
 
         {/* Hover Indicator */}
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
-          <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-            Click to start journey →
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+          <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium inline-flex items-center gap-2">
+            <span>Click to start journey</span>
+            <span className="transform group-hover:translate-x-1 transition-transform">→</span>
           </p>
         </div>
       </article>
