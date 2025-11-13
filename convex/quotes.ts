@@ -131,3 +131,18 @@ export const getCategories = query({
     return Array.from(categories).sort();
   },
 });
+
+// Update AI-generated data for a quote
+export const updateAIData = mutation({
+  args: {
+    quoteId: v.id("quotes"),
+    embedding: v.array(v.number()),
+    aiInsight: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.quoteId, {
+      embedding: args.embedding,
+      aiInsight: args.aiInsight,
+    });
+  },
+});

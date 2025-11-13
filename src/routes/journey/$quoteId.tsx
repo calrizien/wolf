@@ -2,8 +2,8 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '../../../convex/_generated/api'
-import { useMutation } from 'convex/react'
-import { useEffect } from 'react'
+import { useMutation, useAction } from 'convex/react'
+import { useEffect, useState } from 'react'
 
 export const Route = createFileRoute('/journey/$quoteId')({
   component: JourneyPage,
@@ -12,14 +12,16 @@ export const Route = createFileRoute('/journey/$quoteId')({
 function JourneyPage() {
   const { quoteId } = Route.useParams()
   const navigate = useNavigate()
+  const [relatedQuotes, setRelatedQuotes] = useState<any[]>([])
+  const [isLoadingAI, setIsLoadingAI] = useState(true)
 
   // Fetch the current quote
   const { data: currentQuote } = useSuspenseQuery(
     convexQuery(api.quotes.getById, { id: quoteId as any })
   )
 
-  // Fetch 3 related quotes from the same category
-  const { data: relatedQuotes } = useSuspenseQuery(
+  // Fetch 3 related quotes from the same category (fallback)
+  const { data: fallbackQuotes } = useSuspenseQuery(
     convexQuery(api.quotes.getRandomThree, {
       category: currentQuote?.category,
     })
@@ -28,11 +30,40 @@ function JourneyPage() {
   // Increment view count
   const incrementViews = useMutation(api.quotes.incrementViews)
 
+  // AI-powered similar quotes
+  const findSimilar = useAction(api.ai.findSimilarQuotes)
+
   useEffect(() => {
     if (currentQuote) {
       incrementViews({ id: quoteId as any })
     }
   }, [currentQuote, quoteId, incrementViews])
+
+  // Try to load AI-powered recommendations, fallback to category-based
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      if (!currentQuote) return
+
+      try {
+        setIsLoadingAI(true)
+        // Try AI-powered semantic search
+        const similar = await findSimilar({ quoteId: quoteId as any, limit: 3 })
+        if (similar && similar.length > 0) {
+          setRelatedQuotes(similar)
+        } else {
+          // Fallback to category-based
+          setRelatedQuotes(fallbackQuotes || [])
+        }
+      } catch (error) {
+        console.log('AI recommendations unavailable, using category-based')
+        setRelatedQuotes(fallbackQuotes || [])
+      } finally {
+        setIsLoadingAI(false)
+      }
+    }
+
+    loadRecommendations()
+  }, [currentQuote, quoteId, fallbackQuotes, findSimilar])
 
   if (!currentQuote) {
     return (
@@ -103,6 +134,23 @@ function JourneyPage() {
               </div>
             </footer>
 
+            {/* AI Insight */}
+            {currentQuote.aiInsight && (
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-start gap-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 p-4 rounded-lg">
+                  <div className="text-2xl">✨</div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-indigo-900 dark:text-indigo-300 mb-1">
+                      AI Insight
+                    </h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {currentQuote.aiInsight}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tags */}
             {currentQuote.tags && currentQuote.tags.length > 0 && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -128,6 +176,11 @@ function JourneyPage() {
             <p className="text-gray-600 dark:text-gray-400">
               Choose a quote that resonates with you
             </p>
+            {currentQuote?.embedding && !isLoadingAI && (
+              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-full text-xs text-indigo-700 dark:text-indigo-300">
+                <span>🤖</span> AI-powered recommendations
+              </div>
+            )}
           </div>
 
           {/* Related Quotes Grid */}

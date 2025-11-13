@@ -17,14 +17,14 @@ This project uses all the required hackathon technologies:
 
 - **TanStack Start** - React SSR framework with file-based routing
 - **Convex** - Real-time serverless database and backend
-- **Cloudflare Workers + AI** - Deployment platform and AI features (coming in Phase 2)
+- **Cloudflare Workers + AI** - Deployment platform and AI features
 - **Firecrawl** - Quote scraping from web sources
 - **Tailwind CSS 4** - Modern styling with animations
 - **Sentry** - Error tracking (coming in Phase 4)
 
 ## Features
 
-### Phase 1 (Current) ✅
+### Phase 1 ✅
 - Beautiful landing page with animated quote grid
 - Browse quotes by category
 - Journey flow: click a quote → see 3 related options → repeat
@@ -32,10 +32,13 @@ This project uses all the required hackathon technologies:
 - Fully responsive design
 - Dark mode support
 
-### Phase 2 (Coming Soon)
-- AI-powered semantic search
-- Personalized recommendations
-- Smart quote embeddings
+### Phase 2 (Current) ✅
+- **AI-powered semantic search** - Find quotes by meaning, not just keywords
+- **Cloudflare AI embeddings** - Vector embeddings using @cf/baai/bge-base-en-v1.5
+- **AI-generated insights** - Personalized wisdom using Llama 3
+- **Smart recommendations** - Cosine similarity matching for related quotes
+- **Favorites system** - Save and organize favorite quotes
+- **Fallback support** - Gracefully degrades to category-based search
 
 ### Phase 3 (Coming Soon)
 - Advanced animations and transitions
@@ -56,7 +59,8 @@ This project uses all the required hackathon technologies:
 - Node.js 18+
 - npm or pnpm
 - Convex account (free at https://convex.dev)
-- Firecrawl API key (optional, for scraping)
+- Cloudflare account (free tier includes AI - required for Phase 2)
+- Firecrawl API key (optional, for scraping additional quotes)
 
 ### Installation
 
@@ -99,14 +103,25 @@ npm run dev
 
 ### Environment Variables
 
-If you want to use Firecrawl for scraping additional quotes:
+**Required for Phase 2 AI Features:**
 
 ```bash
 # In Convex dashboard or via CLI
+npx convex env set CLOUDFLARE_ACCOUNT_ID your_account_id
+npx convex env set CLOUDFLARE_API_TOKEN your_api_token
+```
+
+Get your Cloudflare credentials at https://dash.cloudflare.com
+
+**Optional for scraping additional quotes:**
+
+```bash
 npx convex env set FIRECRAWL_API_KEY your_api_key_here
 ```
 
 Get your Firecrawl API key at https://firecrawl.dev
+
+See [docs/SETUP.md](docs/SETUP.md) for detailed setup instructions.
 
 ## Project Structure
 
@@ -116,12 +131,14 @@ wolf/
 │   ├── schema.ts          # Database schema
 │   ├── quotes.ts          # Quote queries/mutations
 │   ├── journeys.ts        # Journey tracking
+│   ├── favorites.ts       # Favorites & user profiles
+│   ├── ai.ts              # Cloudflare AI integration
 │   └── scraping.ts        # Web scraping with Firecrawl
 ├── src/
 │   ├── routes/            # TanStack Start routes
 │   │   ├── index.tsx      # Landing page
 │   │   └── journey/
-│   │       └── $quoteId.tsx # Journey detail page
+│   │       └── $quoteId.tsx # Journey detail with AI
 │   └── styles/
 │       └── app.css        # Tailwind styles
 ├── docs/                  # Documentation
@@ -136,6 +153,8 @@ wolf/
 ### quotes
 - text, author, source, category
 - tags[], views, likes
+- **embedding[]** - Vector embeddings for semantic search
+- **aiInsight** - AI-generated insights
 - Indexed by category and author
 
 ### journeys
@@ -155,14 +174,22 @@ See [docs/DATA_MODEL.md](docs/DATA_MODEL.md) for full schema details.
 - `quotes.getById` - Get single quote
 - `quotes.getRandomThree` - Get 3 related quotes
 - `journeys.getCurrent` - Get active journey
+- `favorites.isFavorited` - Check if quote is favorited
+- `favorites.getFavorites` - Get user's favorite quotes
 
 ### Mutations
 - `quotes.create` - Add new quote
+- `quotes.updateAIData` - Update embeddings and insights
 - `quotes.incrementViews` - Track views
 - `quotes.toggleLike` - Like/unlike quote
 - `journeys.create` - Start new journey
+- `favorites.toggleFavorite` - Add/remove from favorites
 
-### Actions
+### Actions (AI-Powered)
+- `ai.generateQuoteEmbedding` - Generate embedding for one quote
+- `ai.generateAllEmbeddings` - Process all quotes with AI
+- `ai.findSimilarQuotes` - Semantic similarity search
+- `ai.getPersonalizedRecommendations` - User-based recommendations
 - `scraping.seedDatabase` - Seed with curated quotes
 - `scraping.scrapeQuotes` - Scrape from URL with Firecrawl
 
@@ -222,4 +249,16 @@ Built for the TanStack Start + Convex Hackathon. Thanks to:
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Next: AI Integration (Phase 2)
+**Status**: Phase 2 Complete ✅ | Next: Polish & Animations (Phase 3)
+
+## Phase 2 Highlights
+
+QuoteJourney now features cutting-edge AI capabilities powered by Cloudflare AI:
+
+- **768-dimensional embeddings** using BGE-base-en-v1.5 model
+- **Semantic understanding** - Quotes are matched by meaning, not just keywords
+- **AI insights** - Every quote gets a personalized reflection from Llama 3
+- **Smart fallbacks** - Works perfectly even without AI credentials
+- **Cosine similarity** - Find the most resonant quotes in milliseconds
+
+The app gracefully handles both AI-powered and traditional workflows, ensuring a great experience for all users.

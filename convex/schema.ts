@@ -12,6 +12,9 @@ export default defineSchema({
     scrapedFrom: v.optional(v.string()),
     likes: v.number(),
     views: v.number(),
+    // AI features
+    embedding: v.optional(v.array(v.number())), // Vector embedding for semantic search
+    aiInsight: v.optional(v.string()), // AI-generated insight about the quote
   })
     .index("by_category", ["category"])
     .index("by_author", ["author"]),
