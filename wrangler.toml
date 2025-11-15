@@ -1,5 +1,5 @@
 # Cloudflare Workers configuration for QuoteJourney
-name = "wolf"
+name = "QuoteJourney"
 main = "dist/server/server.js"
 compatibility_date = "2024-11-13"
 
