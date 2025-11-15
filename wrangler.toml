@@ -1,0 +1,24 @@
+# Cloudflare Workers configuration for QuoteJourney
+name = "wolf"
+main = ".output/server/index.mjs"
+compatibility_date = "2024-11-13"
+
+# Routes
+# Uncomment if you have a custom domain:
+# routes = [
+#   { pattern = "quotejourney.com", zone_name = "quotejourney.com" }
+# ]
+
+# Static assets
+[site]
+bucket = ".output/public"
+
+# Environment variables
+# Note: Set these in Cloudflare dashboard or via wrangler secret
+# DO NOT commit actual secrets to git
+# [vars]
+# Add any environment variables here
+
+# Build configuration
+# [build]
+# command = "npm run build"
