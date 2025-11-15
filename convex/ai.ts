@@ -6,6 +6,18 @@ import { v } from "convex/values";
 const CF_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 
+type CloudflareEmbeddingResponse = {
+  result?: {
+    data?: number[][];
+  };
+};
+
+type CloudflareInsightResponse = {
+  result?: {
+    response?: string;
+  };
+};
+
 // Generate text embedding using Cloudflare AI
 async function generateEmbedding(text: string): Promise<number[]> {
   if (!CF_ACCOUNT_ID || !CF_API_TOKEN) {
@@ -33,8 +45,8 @@ async function generateEmbedding(text: string): Promise<number[]> {
       throw new Error(`Cloudflare AI error: ${response.status}`);
     }
 
-    const result = await response.json();
-    return result.result.data[0] || [];
+    const result = (await response.json()) as CloudflareEmbeddingResponse;
+    return result.result?.data?.[0] ?? [];
   } catch (error) {
     console.error("Error generating embedding:", error);
     // Fallback to mock embedding
@@ -82,8 +94,8 @@ async function generateInsight(quote: string, author: string): Promise<string> {
       throw new Error(`Cloudflare AI error: ${response.status}`);
     }
 
-    const result = await response.json();
-    return result.result.response || "Reflect deeply on these words.";
+    const result = (await response.json()) as CloudflareInsightResponse;
+    return result.result?.response ?? "Reflect deeply on these words.";
   } catch (error) {
     console.error("Error generating insight:", error);
     return "This quote offers wisdom worth contemplating in your daily life.";
