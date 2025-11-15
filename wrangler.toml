@@ -16,8 +16,8 @@ bucket = "dist/client"
 # Environment variables
 # Note: Set these in Cloudflare dashboard or via wrangler secret
 # DO NOT commit actual secrets to git
-# [vars]
-# Add any environment variables here
+[vars]
+VITE_CONVEX_URL = "https://keen-bullfrog-361.convex.cloud"
 
 # Build configuration
 # [build]
