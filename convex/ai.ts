@@ -114,7 +114,7 @@ export const generateQuoteEmbedding = action({
   },
   handler: async (ctx, args) => {
     // Get the quote
-    const quote = await ctx.runQuery(api.quotes.getById, { id: args.quoteId });
+    const quote = await ctx.runQuery((api as any).quotes.getById, { id: args.quoteId });
     if (!quote) {
       throw new Error("Quote not found");
     }
@@ -127,7 +127,7 @@ export const generateQuoteEmbedding = action({
     const insight = await generateInsight(quote.text, quote.author);
 
     // Update the quote with embedding and insight
-    await ctx.runMutation(api.quotes.updateAIData, {
+    await ctx.runMutation((api as any).quotes.updateAIData, {
       quoteId: args.quoteId,
       embedding,
       aiInsight: insight,
@@ -142,14 +142,14 @@ export const generateAllEmbeddings = action({
   args: {},
   handler: async (ctx) => {
     // Get all quotes
-    const quotes = await ctx.runQuery(api.quotes.list, { limit: 1000 });
+    const quotes = await ctx.runQuery((api as any).quotes.list, { limit: 1000 });
 
     let processed = 0;
     let failed = 0;
 
     for (const quote of quotes) {
       try {
-        await ctx.runAction(api.ai.generateQuoteEmbedding, {
+        await ctx.runAction((api as any).ai.generateQuoteEmbedding, {
           quoteId: quote._id,
         });
         processed++;
@@ -178,31 +178,31 @@ export const findSimilarQuotes = action({
     const limit = args.limit ?? 3;
 
     // Get the source quote with its embedding
-    const sourceQuote = await ctx.runQuery(api.quotes.getById, {
+    const sourceQuote = await ctx.runQuery((api as any).quotes.getById, {
       id: args.quoteId,
     });
 
     if (!sourceQuote || !sourceQuote.embedding) {
       // Fallback to category-based search if no embedding
-      return await ctx.runQuery(api.quotes.getRandomThree, {
+      return await ctx.runQuery((api as any).quotes.getRandomThree, {
         category: sourceQuote?.category,
       });
     }
 
     // Get all quotes with embeddings
-    const allQuotes = await ctx.runQuery(api.quotes.list, { limit: 1000 });
+    const allQuotes = await ctx.runQuery((api as any).quotes.list, { limit: 1000 });
 
     // Calculate similarities
     const similarities = allQuotes
-      .filter((q) => q._id !== sourceQuote._id && q.embedding)
-      .map((quote) => ({
+      .filter((q: any) => q._id !== sourceQuote._id && q.embedding)
+      .map((quote: any) => ({
         quote,
         similarity: cosineSimilarity(sourceQuote.embedding!, quote.embedding!),
       }))
-      .sort((a, b) => b.similarity - a.similarity)
+      .sort((a: any, b: any) => b.similarity - a.similarity)
       .slice(0, limit);
 
-    return similarities.map((s) => s.quote);
+    return similarities.map((s: any) => s.quote);
   },
 });
 
@@ -217,38 +217,38 @@ export const getPersonalizedRecommendations = action({
 
     if (!args.userId) {
       // Return popular quotes for anonymous users
-      const quotes = await ctx.runQuery(api.quotes.list, { limit });
-      return quotes.sort((a, b) => b.views + b.likes - (a.views + a.likes)).slice(0, limit);
+      const quotes = await ctx.runQuery((api as any).quotes.list, { limit });
+      return quotes.sort((a: any, b: any) => b.views + b.likes - (a.views + a.likes)).slice(0, limit);
     }
 
     // Get user's journey history
-    const journey = await ctx.runQuery(api.journeys.getCurrent, {
+    const journey = await ctx.runQuery((api as any).journeys.getCurrent, {
       userId: args.userId,
     });
 
     if (!journey || journey.quotes.length === 0) {
       // No history, return popular quotes
-      const quotes = await ctx.runQuery(api.quotes.list, { limit });
-      return quotes.sort((a, b) => b.views + b.likes - (a.views + a.likes)).slice(0, limit);
+      const quotes = await ctx.runQuery((api as any).quotes.list, { limit });
+      return quotes.sort((a: any, b: any) => b.views + b.likes - (a.views + a.likes)).slice(0, limit);
     }
 
     // Get embeddings of quotes user has seen
     const seenQuoteIds = journey.quotes;
-    const allQuotes = await ctx.runQuery(api.quotes.list, { limit: 1000 });
+    const allQuotes = await ctx.runQuery((api as any).quotes.list, { limit: 1000 });
 
     // Calculate average embedding of user's journey
-    const seenQuotes = allQuotes.filter((q) =>
+    const seenQuotes = allQuotes.filter((q: any) =>
       seenQuoteIds.includes(q._id) && q.embedding
     );
 
     if (seenQuotes.length === 0) {
-      return await ctx.runQuery(api.quotes.getRandomThree, {});
+      return await ctx.runQuery((api as any).quotes.getRandomThree, {});
     }
 
     // Average the embeddings
-    const avgEmbedding = seenQuotes[0].embedding!.map((_, i) => {
+    const avgEmbedding = seenQuotes[0].embedding!.map((_: any, i: any) => {
       const sum = seenQuotes.reduce(
-        (acc, q) => acc + (q.embedding![i] || 0),
+        (acc: any, q: any) => acc + (q.embedding![i] || 0),
         0
       );
       return sum / seenQuotes.length;
@@ -256,17 +256,17 @@ export const getPersonalizedRecommendations = action({
 
     // Find quotes similar to the average
     const unseenQuotes = allQuotes.filter(
-      (q) => !seenQuoteIds.includes(q._id) && q.embedding
+      (q: any) => !seenQuoteIds.includes(q._id) && q.embedding
     );
 
     const recommendations = unseenQuotes
-      .map((quote) => ({
+      .map((quote: any) => ({
         quote,
         similarity: cosineSimilarity(avgEmbedding, quote.embedding!),
       }))
-      .sort((a, b) => b.similarity - a.similarity)
+      .sort((a: any, b: any) => b.similarity - a.similarity)
       .slice(0, limit);
 
-    return recommendations.map((r) => r.quote);
+    return recommendations.map((r: any) => r.quote);
   },
 });

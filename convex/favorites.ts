@@ -42,7 +42,7 @@ export const toggleFavorite = mutation({
 
     if (index > -1) {
       // Remove from favorites
-      newFavorites = favorites.filter((id) => id !== args.quoteId);
+      newFavorites = favorites.filter((id: any) => id !== args.quoteId);
       isFavorited = false;
     } else {
       // Add to favorites

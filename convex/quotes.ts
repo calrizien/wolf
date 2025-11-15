@@ -11,17 +11,21 @@ export const list = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
 
-    let quotesQuery = ctx.db.query("quotes");
-
     if (args.category) {
-      quotesQuery = quotesQuery
-        .withIndex("by_category", (q) => q.eq("category", args.category));
+      const quotes = await ctx.db.query("quotes")
+        .withIndex("by_category", (q) => q.eq("category", args.category!))
+        .order("desc")
+        .take(limit);
+      return quotes;
     } else if (args.author) {
-      quotesQuery = quotesQuery
-        .withIndex("by_author", (q) => q.eq("author", args.author));
+      const quotes = await ctx.db.query("quotes")
+        .withIndex("by_author", (q) => q.eq("author", args.author!))
+        .order("desc")
+        .take(limit);
+      return quotes;
     }
 
-    const quotes = await quotesQuery
+    const quotes = await ctx.db.query("quotes")
       .order("desc")
       .take(limit);
 
@@ -45,15 +49,15 @@ export const getRandomThree = query({
     category: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let quotesQuery = ctx.db.query("quotes");
+    let allQuotes;
 
     if (args.category) {
-      quotesQuery = quotesQuery
-        .withIndex("by_category", (q) => q.eq("category", args.category));
+      allQuotes = await ctx.db.query("quotes")
+        .withIndex("by_category", (q) => q.eq("category", args.category!))
+        .collect();
+    } else {
+      allQuotes = await ctx.db.query("quotes").collect();
     }
-
-    // Get all quotes and randomly select 3
-    const allQuotes = await quotesQuery.collect();
 
     // Fisher-Yates shuffle and take first 3
     const shuffled = [...allQuotes];

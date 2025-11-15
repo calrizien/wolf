@@ -8,7 +8,12 @@
  * @module
  */
 
+import type * as ai from "../ai.js";
+import type * as favorites from "../favorites.js";
+import type * as journeys from "../journeys.js";
 import type * as myFunctions from "../myFunctions.js";
+import type * as quotes from "../quotes.js";
+import type * as scraping from "../scraping.js";
 
 import type {
   ApiFromModules,
@@ -17,7 +22,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  ai: typeof ai;
+  favorites: typeof favorites;
+  journeys: typeof journeys;
   myFunctions: typeof myFunctions;
+  quotes: typeof quotes;
+  scraping: typeof scraping;
 }>;
 
 /**

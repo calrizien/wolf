@@ -1,9 +1,9 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '../../../convex/_generated/api'
 import { useMutation, useAction } from 'convex/react'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState } from 'react'
 import { LoadingSpinner, LoadingJourneyPage } from '../../components/LoadingSpinner'
 
 export const Route = createFileRoute('/journey/$quoteId')({
@@ -13,7 +13,6 @@ export const Route = createFileRoute('/journey/$quoteId')({
 
 function JourneyPage() {
   const { quoteId } = Route.useParams()
-  const navigate = useNavigate()
   const [relatedQuotes, setRelatedQuotes] = useState<any[]>([])
   const [isLoadingAI, setIsLoadingAI] = useState(true)
 
@@ -159,7 +158,7 @@ function JourneyPage() {
             {currentQuote.tags && currentQuote.tags.length > 0 && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex flex-wrap gap-2">
-                  {currentQuote.tags.map((tag) => (
+                  {currentQuote.tags.map((tag: string) => (
                     <span
                       key={tag}
                       className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"

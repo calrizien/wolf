@@ -8,7 +8,7 @@ export const scrapeQuotes = action({
     url: v.string(),
     category: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     try {
       const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
 

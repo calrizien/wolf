@@ -58,7 +58,7 @@ function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {quotes.map((quote, index) => (
+              {quotes.map((quote: any, index: number) => (
                 <QuoteCard
                   key={quote._id}
                   quote={quote}
