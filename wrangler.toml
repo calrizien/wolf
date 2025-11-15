@@ -1,0 +1,24 @@
+# Cloudflare Workers configuration for QuoteJourney
+name = "QuoteJourney"
+main = "dist/server/server.js"
+compatibility_date = "2024-11-13"
+
+# Routes
+# Uncomment if you have a custom domain:
+# routes = [
+#   { pattern = "quotejourney.com", zone_name = "quotejourney.com" }
+# ]
+
+# Static assets
+[site]
+bucket = "dist/client"
+
+# Environment variables
+# Note: Set these in Cloudflare dashboard or via wrangler secret
+# DO NOT commit actual secrets to git
+[vars]
+VITE_CONVEX_URL = "https://keen-bullfrog-361.convex.cloud"
+
+# Build configuration
+# [build]
+# command = "npm run build"

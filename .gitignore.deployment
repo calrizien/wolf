@@ -1,0 +1,5 @@
+# Add to your .gitignore if not already there
+.output/
+dist/
+.wrangler/
+wrangler.toml.backup
