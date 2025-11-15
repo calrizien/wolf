@@ -1,6 +1,6 @@
 # Cloudflare Workers configuration for QuoteJourney
 name = "wolf"
-main = ".output/server/index.mjs"
+main = "dist/server/server.js"
 compatibility_date = "2024-11-13"
 
 # Routes
@@ -11,7 +11,7 @@ compatibility_date = "2024-11-13"
 
 # Static assets
 [site]
-bucket = ".output/public"
+bucket = "dist/client"
 
 # Environment variables
 # Note: Set these in Cloudflare dashboard or via wrangler secret
