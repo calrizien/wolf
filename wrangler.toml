@@ -1,6 +1,6 @@
 # Cloudflare Workers configuration for QuoteJourney
 name = "quotejourney"
-main = "dist/server/server.js"
+main = "worker/worker.js"
 compatibility_date = "2024-11-13"
 compatibility_flags = ["nodejs_compat"]
 
@@ -10,9 +10,10 @@ compatibility_flags = ["nodejs_compat"]
 #   { pattern = "quotejourney.com", zone_name = "quotejourney.com" }
 # ]
 
-# Static assets
-[site]
-bucket = "dist/client"
+# Static assets served alongside the Worker
+[assets]
+binding = "ASSETS"
+directory = "dist/client"
 
 # Environment variables
 # Note: Set these in Cloudflare dashboard or via wrangler secret

@@ -151,6 +151,12 @@ npx convex env set FIRECRAWL_API_KEY your_api_key_here
 
 Get your Firecrawl API key at https://firecrawl.dev
 
+### Convex environments
+
+- Production builds read from `.env.production`, which now pins `VITE_CONVEX_URL=https://keen-bullfrog-361.convex.cloud` (the seeded prod deployment).
+- For local tweaks, copy `.env.production` to `.env.development.local` or `.env.local` and change `VITE_CONVEX_URL` to a different Convex deployment.
+- Keep `CONVEX_DEPLOYMENT` inside your local-only env file so `npx convex dev` still points at your preferred dev deployment while the UI hits prod data by default.
+
 See [docs/SETUP.md](docs/SETUP.md) for detailed setup instructions.
 
 ## Project Structure
