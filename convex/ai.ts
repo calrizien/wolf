@@ -1,6 +1,7 @@
-import { action } from "./_generated/server";
-import { api } from "./_generated/api";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
+import { action } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 
 // Cloudflare AI API configuration
 const CF_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -8,7 +9,7 @@ const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 
 type CloudflareEmbeddingResponse = {
   result?: {
-    data?: number[][];
+    data?: Array<Array<number>>;
   };
 };
 
@@ -18,8 +19,16 @@ type CloudflareInsightResponse = {
   };
 };
 
+type QuoteDoc = Doc<"quotes">;
+
+const hasEmbedding = (quote: QuoteDoc): quote is QuoteDoc & { embedding: Array<number> } =>
+  Array.isArray(quote.embedding);
+
+// Convex's generated api type is hard to infer inside actions. Cast once to keep code readable.
+const convexApi = api as any;
+
 // Generate text embedding using Cloudflare AI
-async function generateEmbedding(text: string): Promise<number[]> {
+async function generateEmbedding(text: string): Promise<Array<number>> {
   if (!CF_ACCOUNT_ID || !CF_API_TOKEN) {
     console.warn("Cloudflare AI credentials not configured, using mock embedding");
     // Return mock embedding for development
@@ -103,7 +112,7 @@ async function generateInsight(quote: string, author: string): Promise<string> {
 }
 
 // Calculate cosine similarity between two embeddings
-function cosineSimilarity(a: number[], b: number[]): number {
+function cosineSimilarity(a: Array<number>, b: Array<number>): number {
   if (a.length !== b.length) return 0;
 
   let dotProduct = 0;
@@ -126,7 +135,9 @@ export const generateQuoteEmbedding = action({
   },
   handler: async (ctx, args) => {
     // Get the quote
-    const quote = await ctx.runQuery((api as any).quotes.getById, { id: args.quoteId });
+    const quote = await ctx.runQuery(convexApi.quotes.getById, {
+      id: args.quoteId,
+    });
     if (!quote) {
       throw new Error("Quote not found");
     }
@@ -139,7 +150,7 @@ export const generateQuoteEmbedding = action({
     const insight = await generateInsight(quote.text, quote.author);
 
     // Update the quote with embedding and insight
-    await ctx.runMutation((api as any).quotes.updateAIData, {
+    await ctx.runMutation(convexApi.quotes.updateAIData, {
       quoteId: args.quoteId,
       embedding,
       aiInsight: insight,
@@ -154,14 +165,16 @@ export const generateAllEmbeddings = action({
   args: {},
   handler: async (ctx) => {
     // Get all quotes
-    const quotes = await ctx.runQuery((api as any).quotes.list, { limit: 1000 });
+    const quotes = (await ctx.runQuery(convexApi.quotes.list, {
+      limit: 1000,
+    })) as Array<QuoteDoc>;
 
     let processed = 0;
     let failed = 0;
 
     for (const quote of quotes) {
       try {
-        await ctx.runAction((api as any).ai.generateQuoteEmbedding, {
+        await ctx.runAction(convexApi.ai.generateQuoteEmbedding, {
           quoteId: quote._id,
         });
         processed++;
@@ -190,31 +203,35 @@ export const findSimilarQuotes = action({
     const limit = args.limit ?? 3;
 
     // Get the source quote with its embedding
-    const sourceQuote = await ctx.runQuery((api as any).quotes.getById, {
+    const sourceQuote = await ctx.runQuery(convexApi.quotes.getById, {
       id: args.quoteId,
     });
 
-    if (!sourceQuote || !sourceQuote.embedding) {
+    if (!sourceQuote || !hasEmbedding(sourceQuote)) {
       // Fallback to category-based search if no embedding
-      return await ctx.runQuery((api as any).quotes.getRandomThree, {
+      return await ctx.runQuery(convexApi.quotes.getRandomThree, {
         category: sourceQuote?.category,
       });
     }
 
     // Get all quotes with embeddings
-    const allQuotes = await ctx.runQuery((api as any).quotes.list, { limit: 1000 });
+    const allQuotes = (await ctx.runQuery(convexApi.quotes.list, {
+      limit: 1000,
+    })) as Array<QuoteDoc>;
+    const quotesWithEmbedding = allQuotes.filter(hasEmbedding);
+    const sourceEmbedding = sourceQuote.embedding;
 
     // Calculate similarities
-    const similarities = allQuotes
-      .filter((q: any) => q._id !== sourceQuote._id && q.embedding)
-      .map((quote: any) => ({
+    const similarities = quotesWithEmbedding
+      .filter((quote) => quote._id !== sourceQuote._id)
+      .map((quote) => ({
         quote,
-        similarity: cosineSimilarity(sourceQuote.embedding!, quote.embedding!),
+        similarity: cosineSimilarity(sourceEmbedding, quote.embedding),
       }))
-      .sort((a: any, b: any) => b.similarity - a.similarity)
+      .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit);
 
-    return similarities.map((s: any) => s.quote);
+    return similarities.map((similar) => similar.quote);
   },
 });
 
@@ -229,38 +246,51 @@ export const getPersonalizedRecommendations = action({
 
     if (!args.userId) {
       // Return popular quotes for anonymous users
-      const quotes = await ctx.runQuery((api as any).quotes.list, { limit });
-      return quotes.sort((a: any, b: any) => b.views + b.likes - (a.views + a.likes)).slice(0, limit);
+      const quotes = (await ctx.runQuery(convexApi.quotes.list, {
+        limit,
+      })) as Array<QuoteDoc>;
+      return quotes
+        .sort((a, b) => b.views + b.likes - (a.views + a.likes))
+        .slice(0, limit);
     }
 
     // Get user's journey history
-    const journey = await ctx.runQuery((api as any).journeys.getCurrent, {
+    const journey = await ctx.runQuery(convexApi.journeys.getCurrent, {
       userId: args.userId,
     });
 
     if (!journey || journey.quotes.length === 0) {
       // No history, return popular quotes
-      const quotes = await ctx.runQuery((api as any).quotes.list, { limit });
-      return quotes.sort((a: any, b: any) => b.views + b.likes - (a.views + a.likes)).slice(0, limit);
+      const quotes = (await ctx.runQuery(convexApi.quotes.list, {
+        limit,
+      })) as Array<QuoteDoc>;
+      return quotes
+        .sort((a, b) => b.views + b.likes - (a.views + a.likes))
+        .slice(0, limit);
     }
 
     // Get embeddings of quotes user has seen
     const seenQuoteIds = journey.quotes;
-    const allQuotes = await ctx.runQuery((api as any).quotes.list, { limit: 1000 });
+    const allQuotes = (await ctx.runQuery(convexApi.quotes.list, {
+      limit: 1000,
+    })) as Array<QuoteDoc>;
+    const quotesWithEmbedding = allQuotes.filter(hasEmbedding);
+    const seenQuoteIdSet = new Set(seenQuoteIds);
 
     // Calculate average embedding of user's journey
-    const seenQuotes = allQuotes.filter((q: any) =>
-      seenQuoteIds.includes(q._id) && q.embedding
+    const seenQuotes = quotesWithEmbedding.filter((quote) =>
+      seenQuoteIdSet.has(quote._id.toString())
     );
 
     if (seenQuotes.length === 0) {
-      return await ctx.runQuery((api as any).quotes.getRandomThree, {});
+      return await ctx.runQuery(convexApi.quotes.getRandomThree, {});
     }
 
     // Average the embeddings
-    const avgEmbedding = seenQuotes[0].embedding!.map((_: any, i: any) => {
+    const baseEmbedding = seenQuotes[0].embedding;
+    const avgEmbedding = baseEmbedding.map((_, index) => {
       const sum = seenQuotes.reduce(
-        (acc: any, q: any) => acc + (q.embedding![i] || 0),
+        (acc, quote) => acc + (quote.embedding[index] ?? 0),
         0
       );
       return sum / seenQuotes.length;
@@ -268,17 +298,18 @@ export const getPersonalizedRecommendations = action({
 
     // Find quotes similar to the average
     const unseenQuotes = allQuotes.filter(
-      (q: any) => !seenQuoteIds.includes(q._id) && q.embedding
+      (quote) => !seenQuoteIdSet.has(quote._id.toString()) && quote.embedding
     );
 
     const recommendations = unseenQuotes
-      .map((quote: any) => ({
+      .filter(hasEmbedding)
+      .map((quote) => ({
         quote,
-        similarity: cosineSimilarity(avgEmbedding, quote.embedding!),
+        similarity: cosineSimilarity(avgEmbedding, quote.embedding),
       }))
-      .sort((a: any, b: any) => b.similarity - a.similarity)
+      .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit);
 
-    return recommendations.map((r: any) => r.quote);
+    return recommendations.map((recommendation) => recommendation.quote);
   },
 });

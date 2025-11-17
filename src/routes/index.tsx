@@ -1,18 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
-import { api } from '../../convex/_generated/api'
-import { useVirtualizer } from '@tanstack/react-virtual'
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { api } from '../../convex/_generated/api'
 
 // Tunable constants - adjust these to fine-tune the experience
 const QUOTE_DENSITY = 0.7 // 0.0-1.0, percentage of quotes to show
 const Z_SCROLL_SPEED = 5 // multiplier for scroll to z-axis movement
 const Z_SPACING = 800 // space between quotes on z-axis
-const Z_VISIBLE_RANGE = 3000 // how far ahead/behind to render quotes
+export const Z_VISIBLE_RANGE = 3000 // how far ahead/behind to render quotes
 const Z_HORIZON = 2000 // distance at which quotes start to appear
-const DRIFT_SPEED = 30 // seconds for full screen drift
+export const DRIFT_SPEED = 30 // seconds for full screen drift
 const HOVER_SCALE = 1.2
 const SELECTED_SCALE = 2.5
 const SELECTION_DISPLAY_TIME = 30000 // ms
@@ -55,18 +54,20 @@ function Home() {
 
   // Filter quotes based on density
   const visibleQuotes = useMemo(() => {
+    if (allQuotes.length === 0) return []
     const count = Math.floor(allQuotes.length * QUOTE_DENSITY)
     return allQuotes.slice(0, count)
   }, [allQuotes])
 
   // State management
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
-  const [relatedQuotes, setRelatedQuotes] = useState<Quote[]>([])
+  const [relatedQuotes, setRelatedQuotes] = useState<Array<Quote>>([])
   const [showTitle, setShowTitle] = useState(true)
   const [hasInteracted, setHasInteracted] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [isScrollingDisabled, setIsScrollingDisabled] = useState(false)
   const [floatingAwayQuoteId, setFloatingAwayQuoteId] = useState<string | null>(null)
+  const [scrollOffset, setScrollOffset] = useState(0)
   const autoSelectTimerRef = useRef<NodeJS.Timeout | null>(null)
   const floatAwayTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -81,17 +82,26 @@ function Home() {
   // Scroll container ref for virtualizer
   const scrollElementRef = useRef<HTMLDivElement>(null)
 
-  // TanStack Virtual setup
-  const virtualizer = useVirtualizer({
-    count: visibleQuotes.length,
-    getScrollElement: () => scrollElementRef.current,
-    estimateSize: () => Z_SPACING,
-    overscan: 5,
-  })
+  // Initialize and track scroll offset
+  useEffect(() => {
+    const updateScroll = () => {
+      if (scrollElementRef.current) {
+        setScrollOffset(scrollElementRef.current.scrollTop)
+      }
+    }
+    // Update immediately on mount
+    updateScroll()
+    // Update on scroll events
+    const scrollElement = scrollElementRef.current
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', updateScroll)
+      return () => scrollElement.removeEventListener('scroll', updateScroll)
+    }
+  }, [])
 
   // Calculate camera z-position from scroll
-  const scrollOffset = virtualizer.scrollOffset || 0
-  const cameraZ = scrollOffset * Z_SCROLL_SPEED
+  // Start camera slightly back so initial quotes are visible
+  const cameraZ = (scrollOffset * Z_SCROLL_SPEED) - 200
 
   // Initialize audio on mount
   useEffect(() => {
@@ -158,7 +168,7 @@ function Home() {
     setIsScrollingDisabled(true)
 
     // Load related quotes
-    let loadedRelated: Quote[] = []
+    let loadedRelated: Array<Quote> = []
     try {
       const similar = await findSimilar({ quoteId: quote._id as any, limit: 5 })
       loadedRelated = similar || []
@@ -191,9 +201,7 @@ function Home() {
         if (loadedRelated.length > 0) {
           autoSelectTimerRef.current = setTimeout(() => {
             const randomRelated = loadedRelated[Math.floor(Math.random() * loadedRelated.length)]
-            if (randomRelated) {
-              handleQuoteSelect(randomRelated)
-            }
+            handleQuoteSelect(randomRelated)
           }, AUTO_SELECT_DELAY)
         }
       }, 2000) // Match floatAway animation duration
@@ -211,18 +219,22 @@ function Home() {
           .catch(() => {})
       }
     }
+
+    if (scrollElementRef.current) {
+      setScrollOffset(scrollElementRef.current.scrollTop)
+    }
   }, [hasInteracted, audioEnabled])
 
   // FloatingQuote component
-  function FloatingQuote({ 
-    quote, 
-    index, 
-    cameraZ,
-    selectedQuote,
-    floatingAwayQuoteId,
-    isScrollingDisabled,
-    onSelect
-  }: { 
+  function FloatingQuote({
+    quote,
+    index,
+    cameraZ: cameraZProp,
+    selectedQuote: selectedQuoteProp,
+    floatingAwayQuoteId: floatingAwayQuoteIdProp,
+    isScrollingDisabled: isScrollingDisabledProp,
+    onSelect,
+  }: {
     quote: Quote
     index: number
     cameraZ: number
@@ -231,17 +243,23 @@ function Home() {
     isScrollingDisabled: boolean
     onSelect: (quote: Quote) => void
   }) {
-    const quoteZ = index * Z_SPACING
-    const relativeZ = quoteZ - cameraZ
+    // Position quotes in 3D space
+    // Start quotes closer to camera (negative z moves toward viewer in CSS 3D)
+    // First quote at z=-200 (close), second at z=600, third at z=1400, etc.
+    const quoteZ = -200 + (index * Z_SPACING)
+    const relativeZ = quoteZ - cameraZProp
 
     // Only render if within visible range
-    if (relativeZ < -500 || relativeZ > Z_HORIZON) {
+    // relativeZ > 0 means quote is in front of camera (visible)
+    // relativeZ < 0 means quote is behind camera (not visible)
+    // Expanded range to ensure quotes are visible initially
+    if (relativeZ < -1000 || relativeZ > Z_HORIZON + 1000) {
       return null
     }
 
     const { x, y } = getQuotePosition(quote._id)
-    const isSelected = selectedQuote?._id === quote._id
-    const isFloatingAway = floatingAwayQuoteId === quote._id
+    const isSelected = selectedQuoteProp?._id === quote._id
+    const isFloatingAway = floatingAwayQuoteIdProp === quote._id
     const [isHovered, setIsHovered] = useState(false)
 
     // Calculate scale based on z-distance
@@ -250,14 +268,15 @@ function Home() {
     const scale = isSelected ? SELECTED_SCALE : (isHovered ? hoverScale : baseScale)
 
     // Calculate opacity with fog effect
-    const baseOpacity = Math.max(0.2, Math.min(1, 1 - Math.abs(relativeZ) / Z_HORIZON))
+    // Ensure minimum opacity is higher for better visibility
+    const baseOpacity = Math.max(0.4, Math.min(1, 1 - Math.abs(relativeZ) / (Z_HORIZON * 1.5)))
     const opacity = isSelected ? 1 : (isHovered ? Math.min(1, baseOpacity * 1.3) : baseOpacity)
 
     // Calculate blur for depth
     const blur = isSelected ? 0 : Math.abs(relativeZ) / 500
 
     const handleClick = () => {
-      if (!isSelected && !selectedQuote) {
+      if (!isSelected && !selectedQuoteProp) {
         onSelect(quote)
       }
     }
@@ -289,27 +308,28 @@ function Home() {
     }
     // else: Normal floating position uses -50% to center on x,y
 
-    return (
+  return (
       <div
         className={`floating-quote absolute cursor-pointer ${
-          isSelected && !isFloatingAway ? 'z-50' : ''
-        } ${selectedQuote && !isSelected ? 'opacity-30 blur-md' : ''}`}
+          isSelected && !isFloatingAway ? 'z-50' : 'z-10'
+        } ${selectedQuoteProp && !isSelected ? 'opacity-30 blur-md' : ''}`}
         style={{
           left: finalLeft,
           top: finalTop,
           transform: `translate3d(${transformX}, ${transformY}, ${transformZ}px) scale(${transformScale})`,
           opacity: isFloatingAway ? 0 : opacity,
-          filter: isFloatingAway ? 'blur(10px)' : `blur(${blur}px)`,
-          pointerEvents: (isScrollingDisabled && !isSelected) || isFloatingAway ? 'none' : 'auto',
+          filter: isFloatingAway ? 'blur(10px)' : `blur(${Math.min(blur, 5)}px)`,
+          pointerEvents:
+            (isScrollingDisabledProp && !isSelected) || isFloatingAway ? 'none' : 'auto',
           transition: isSelected || isFloatingAway ? 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)' : 'all 0.3s ease',
         }}
         onMouseEnter={() => {
-          if (!isSelected && !selectedQuote) {
+          if (!isSelected && !selectedQuoteProp) {
             setIsHovered(true)
           }
         }}
         onMouseLeave={() => {
-          if (!isSelected && !selectedQuote) {
+          if (!isSelected && !selectedQuoteProp) {
             setIsHovered(false)
           }
         }}
@@ -323,8 +343,8 @@ function Home() {
         >
           "{quote.text}"
           <div className="text-sm mt-2 opacity-80">— {quote.author}</div>
-        </div>
-      </div>
+                </div>
+              </div>
     )
   }
 
@@ -338,7 +358,7 @@ function Home() {
 
       return (
         <div
-          key={quote._id}
+                  key={quote._id}
           className="floating-quote absolute opacity-20 blur-sm pointer-events-none"
           style={{
             left: `${x}%`,
@@ -371,8 +391,8 @@ function Home() {
         }}
         onScroll={handleScroll}
       >
-        {/* Virtual spacer to enable scrolling */}
-        <div style={{ height: `${visibleQuotes.length * Z_SPACING}px` }} />
+        {/* Virtual spacer to enable scrolling - add extra space at start */}
+        <div style={{ height: `${(visibleQuotes.length + 2) * Z_SPACING}px` }} />
 
         {/* Quote Journey Title */}
         {showTitle && (
@@ -383,30 +403,26 @@ function Home() {
           </div>
         )}
 
-        {/* 3D Container for quotes */}
-        <div className="quote-universe relative" style={{ height: '100vh', width: '100vw', transformStyle: 'preserve-3d' }}>
+        {/* 3D Container for quotes - fixed position to stay in viewport */}
+        <div className="quote-universe fixed inset-0" style={{ height: '100vh', width: '100vw', transformStyle: 'preserve-3d' }}>
           {/* Render floating quotes */}
-          {virtualizer.getVirtualItems().map((virtualItem) => {
-            const quote = visibleQuotes[virtualItem.index]
-            if (!quote) return null
-            return (
-              <FloatingQuote 
-                key={quote._id} 
-                quote={quote} 
-                index={virtualItem.index}
-                cameraZ={cameraZ}
-                selectedQuote={selectedQuote}
-                floatingAwayQuoteId={floatingAwayQuoteId}
-                isScrollingDisabled={isScrollingDisabled}
-                onSelect={handleQuoteSelect}
-              />
-            )
-          })}
+          {visibleQuotes.map((quote, index) => (
+            <FloatingQuote 
+              key={quote._id} 
+              quote={quote} 
+              index={index}
+              cameraZ={cameraZ}
+              selectedQuote={selectedQuote}
+              floatingAwayQuoteId={floatingAwayQuoteId}
+              isScrollingDisabled={isScrollingDisabled}
+              onSelect={handleQuoteSelect}
+            />
+          ))}
 
           {/* Render related quotes in background when selected */}
           {renderRelatedQuotes()}
         </div>
-      </div>
+        </div>
 
       {/* Empty state */}
       {visibleQuotes.length === 0 && (

@@ -1,6 +1,6 @@
-import { action } from "./_generated/server";
-import { api } from "./_generated/api";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
+import { action } from "./_generated/server";
 
 // Scrape quotes from web sources using Firecrawl
 export const scrapeQuotes = action({

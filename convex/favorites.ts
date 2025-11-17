@@ -37,7 +37,7 @@ export const toggleFavorite = mutation({
     const favorites = profile.favoriteQuotes || [];
     const index = favorites.indexOf(args.quoteId);
 
-    let newFavorites: string[];
+    let newFavorites: Array<string>;
     let isFavorited: boolean;
 
     if (index > -1) {

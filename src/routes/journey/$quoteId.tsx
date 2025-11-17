@@ -1,10 +1,13 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
-import { api } from '../../../convex/_generated/api'
-import { useMutation, useAction } from 'convex/react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { Link, createFileRoute } from '@tanstack/react-router'
+import { useAction, useMutation } from 'convex/react'
 import { useEffect, useState } from 'react'
-import { LoadingSpinner, LoadingJourneyPage } from '../../components/LoadingSpinner'
+import { api } from '../../../convex/_generated/api'
+import { LoadingJourneyPage, LoadingSpinner } from '../../components/LoadingSpinner'
+import type { Doc, Id } from '../../../convex/_generated/dataModel'
+
+type QuoteDoc = Doc<'quotes'>
 
 export const Route = createFileRoute('/journey/$quoteId')({
   component: JourneyPage,
@@ -13,16 +16,17 @@ export const Route = createFileRoute('/journey/$quoteId')({
 
 function JourneyPage() {
   const { quoteId } = Route.useParams()
-  const [relatedQuotes, setRelatedQuotes] = useState<any[]>([])
+  const quoteDocId = quoteId as Id<'quotes'>
+  const [relatedQuotes, setRelatedQuotes] = useState<Array<QuoteDoc>>([])
   const [isLoadingAI, setIsLoadingAI] = useState(true)
 
   // Fetch the current quote
   const { data: currentQuote } = useSuspenseQuery(
-    convexQuery(api.quotes.getById, { id: quoteId as any })
+    convexQuery(api.quotes.getById, { id: quoteDocId })
   )
 
   // Fetch 3 related quotes from the same category (fallback)
-  const { data: fallbackQuotes } = useSuspenseQuery(
+  const { data: fallbackQuotes = [] } = useSuspenseQuery(
     convexQuery(api.quotes.getRandomThree, {
       category: currentQuote?.category,
     })
@@ -35,10 +39,10 @@ function JourneyPage() {
   const findSimilar = useAction(api.ai.findSimilarQuotes)
 
   useEffect(() => {
-    if (currentQuote) {
-      incrementViews({ id: quoteId as any })
-    }
-  }, [currentQuote, quoteId, incrementViews])
+    if (!currentQuote) return
+
+    incrementViews({ id: quoteDocId })
+  }, [currentQuote, quoteDocId, incrementViews])
 
   // Try to load AI-powered recommendations, fallback to category-based
   useEffect(() => {
@@ -48,23 +52,26 @@ function JourneyPage() {
       try {
         setIsLoadingAI(true)
         // Try AI-powered semantic search
-        const similar = await findSimilar({ quoteId: quoteId as any, limit: 3 })
-        if (similar && similar.length > 0) {
-          setRelatedQuotes(similar)
+        const similar = (await findSimilar({ quoteId: quoteDocId, limit: 3 })) as
+          | Array<QuoteDoc>
+          | undefined
+        const normalizedSimilar = similar ?? []
+        if (normalizedSimilar.length > 0) {
+          setRelatedQuotes(normalizedSimilar)
         } else {
           // Fallback to category-based
-          setRelatedQuotes(fallbackQuotes || [])
+          setRelatedQuotes(fallbackQuotes)
         }
       } catch (error) {
         console.log('AI recommendations unavailable, using category-based')
-        setRelatedQuotes(fallbackQuotes || [])
+        setRelatedQuotes(fallbackQuotes)
       } finally {
         setIsLoadingAI(false)
       }
     }
 
     loadRecommendations()
-  }, [currentQuote, quoteId, fallbackQuotes, findSimilar])
+  }, [currentQuote, quoteDocId, fallbackQuotes, findSimilar])
 
   if (!currentQuote) {
     return (
@@ -155,10 +162,10 @@ function JourneyPage() {
             )}
 
             {/* Tags */}
-            {currentQuote.tags && currentQuote.tags.length > 0 && (
+            {currentQuote.tags.length > 0 && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex flex-wrap gap-2">
-                  {currentQuote.tags.map((tag: string) => (
+                  {currentQuote.tags.map((tag) => (
                     <span
                       key={tag}
                       className="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
@@ -186,7 +193,7 @@ function JourneyPage() {
                   Finding related quotes...
                 </p>
               </div>
-            ) : currentQuote?.embedding ? (
+            ) : currentQuote.embedding ? (
               <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-full text-xs text-indigo-700 dark:text-indigo-300 animate-fade-in">
                 <span>🤖</span> AI-powered recommendations
               </div>
