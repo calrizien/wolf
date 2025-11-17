@@ -151,12 +151,11 @@ export const seedDatabase = action({
 
       // PERSISTENCE & RESILIENCE
       { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius", category: "persistence", tags: ["progress", "consistency", "perseverance", "pace"] },
-      { text: "Fall seven times, stand up eight.", author: "Japanese Proverb", category: "persistence", tags: ["resilience", "failure", "courage", "recovery"] },
       { text: "Success is stumbling from failure to failure with no loss of enthusiasm.", author: "Winston Churchill", category: "persistence", tags: ["failure", "enthusiasm", "resilience", "optimism"] },
       { text: "Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time.", author: "Thomas Edison", category: "persistence", tags: ["giving-up", "success", "trying", "determination"] },
       { text: "The master has failed more times than the beginner has even tried.", author: "Stephen McCranie", category: "persistence", tags: ["failure", "mastery", "experience", "growth"] },
       { text: "Resilience is accepting your new reality, even if it's less good than the one you had before.", author: "Elizabeth Edwards", category: "persistence", tags: ["acceptance", "reality", "adaptation", "survival"] },
-      { text: "Fall down seven times, stand up eight.", author: "Japanese Proverb", category: "persistence", tags: ["resilience", "determination", "perseverance", "recovery"] },
+      { text: "Fall down seven times, stand up eight.", author: "Japanese Proverb", category: "persistence", tags: ["resilience", "failure", "courage", "recovery", "determination"] },
 
       // TRUTH & HONESTY
       { text: "The truth will set you free, but first it will piss you off.", author: "Gloria Steinem", category: "truth", tags: ["freedom", "honesty", "discomfort", "liberation"] },
@@ -254,7 +253,7 @@ export const seedDatabase = action({
       { text: "Do what you do so well that they will want to see it again and bring their friends.", author: "Walt Disney", category: "passion", tags: ["excellence", "quality", "worth", "repeat"] },
 
       // KINDNESS & COMPASSION
-      { text: "Be kind whenever possible. It is always possible.", author: "Dalai Lama", category: "kindness", tags: ["compassion", "choice", "choice", "humanity"] },
+      { text: "Be kind whenever possible. It is always possible.", author: "Dalai Lama", category: "kindness", tags: ["compassion", "choice", "humanity"] },
       { text: "No act of kindness, no matter how small, is ever wasted.", author: "Aesop", category: "kindness", tags: ["compassion", "impact", "humanity", "goodness"] },
       { text: "Kindness is a language which the deaf can hear and the blind can see.", author: "Mark Twain", category: "kindness", tags: ["universality", "compassion", "connection", "humanity"] },
       { text: "Everybody has the capacity to do good. And everybody has the capacity to do evil.", author: "Fred Rogers", category: "kindness", tags: ["choice", "humanity", "potential", "morality"] },
