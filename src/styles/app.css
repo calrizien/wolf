@@ -176,4 +176,96 @@
     );
     background-size: 200% 100%;
   }
+
+  /* 3D Quote Universe */
+  .quote-universe {
+    perspective: 1000px;
+    perspective-origin: 50% 50%;
+    transform-style: preserve-3d;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 50%, rgba(0, 0, 0, 0.8) 100%);
+  }
+
+  .dark .quote-universe {
+    background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 50%, rgba(0, 0, 0, 0.95) 100%);
+  }
+
+  /* Floating quote animations */
+  @keyframes cloudFloat {
+    0%, 100% { 
+      transform: translate(0, 0) rotate(0deg); 
+    }
+    25% { 
+      transform: translate(10px, -5px) rotate(1deg); 
+    }
+    50% { 
+      transform: translate(-5px, 10px) rotate(-1deg); 
+    }
+    75% { 
+      transform: translate(5px, 5px) rotate(0.5deg); 
+    }
+  }
+
+  @keyframes fadeInTitle {
+    0% { 
+      opacity: 0; 
+      transform: scale(0.9); 
+    }
+    50% { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+    100% { 
+      opacity: 0; 
+      transform: scale(1.1); 
+    }
+  }
+
+  @keyframes whooshToCenter {
+    0% { 
+      transform: translate3d(var(--start-x, 0), var(--start-y, 0), var(--start-z, 0)) scale(1); 
+      opacity: 1;
+    }
+    100% { 
+      transform: translate3d(50vw, 50vh, 200px) scale(2.5); 
+      opacity: 1;
+    }
+  }
+
+  @keyframes floatAway {
+    0% { 
+      transform: translate3d(50vw, 50vh, 200px) scale(2.5); 
+      opacity: 1; 
+    }
+    100% { 
+      transform: translate3d(50vw, -20vh, -500px) scale(0.5); 
+      opacity: 0; 
+    }
+  }
+
+  .animate-cloud-float {
+    animation: cloudFloat 30s ease-in-out infinite;
+  }
+
+  .animate-fade-title {
+    animation: fadeInTitle 3s ease-in-out forwards;
+  }
+
+  .animate-whoosh-center {
+    animation: whooshToCenter 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-float-away {
+    animation: floatAway 2s ease-out forwards;
+  }
+
+  /* GPU acceleration */
+  .floating-quote {
+    will-change: transform, opacity;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+  }
 }
